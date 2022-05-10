@@ -60,6 +60,8 @@ class Environment {
   static String get pubdocURL => dotenv.env['AUTONOMY_PUBDOC_URL'] ?? '';
   static String get sentryDSN => dotenv.env['SENTRY_DSN'] ?? '';
   static String get onesignalAppID => dotenv.env['ONESIGNAL_APP_ID'] ?? '';
+  static String get awsIdentityPoolId =>
+      dotenv.env['AWS_IDENTITY_POOL_ID'] ?? '';
 }
 
 class Secret {
