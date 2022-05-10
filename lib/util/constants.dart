@@ -8,6 +8,8 @@ const DEFAULT_IPFS_PREFIX = 'https://ipfs.io';
 const CLOUDFLARE_IPFS_PREFIX = 'https://cloudflare-ipfs.com';
 const EMPTY_ISSUE_MESSAGE = 'NO MESSAGE BODY WAS PROVIDED';
 const KNOWN_BUGS_LINK = 'https://github.com/orgs/bitmark-inc/projects/16';
+const USER_TEST_CALENDAR_LINK =
+    'https://calendar.google.com/calendar/u/0/selfsched?sstoken=UUxoOWZ3QzVDeDZufGRlZmF1bHR8M2Y0MmJjNDI4ZTAxNzY0OGUzOWZiYTRjMDYwNTI5NjY';
 
 Future<bool> isAppCenterBuild() async {
   final PackageInfo info = await PackageInfo.fromPlatform();
