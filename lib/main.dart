@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:autonomy_flutter/common/environment.dart';
 import 'package:autonomy_flutter/common/injector.dart';
+import 'package:autonomy_flutter/database/cloud_database.dart';
 import 'package:autonomy_flutter/screen/app_router.dart';
 import 'package:autonomy_flutter/service/aws_service.dart';
 import 'package:autonomy_flutter/service/navigation_service.dart';
@@ -61,7 +62,11 @@ void main() async {
       showErrorDialogFromException(details.exception,
           stackTrace: details.stack, library: details.library);
     };
-    await injector<AWSService>().initServices();
+
+    final persona = await injector<CloudDatabase>().personaDao.getDefaultPersonas();
+    if (persona.length > 0) {
+      await injector<AWSService>().initServices();
+    }
 
     BlocOverrides.runZoned(
       () => runApp(OverlaySupport.global(child: AutonomyApp())),
