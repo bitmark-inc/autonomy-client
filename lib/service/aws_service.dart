@@ -83,13 +83,14 @@ class AWSService {
   }
 
   Future<void> storeEventWithDeviceData(String name,
-      {Map<String, dynamic> data = const {},
+      {String? message,
+      Map<String, dynamic> data = const {},
       Map<String, dynamic> hashingData = const {}}) async {
     if (_configurationService.isAnalyticsEnabled() == false) {
       return;
     }
 
-    var additionalData = new Map<String, dynamic>.from(data);
+    var additionalData = new Map<String, dynamic>();
 
     additionalData["name"] = name;
     additionalData["user_id"] = _hashedUserID;
@@ -99,9 +100,19 @@ class AWSService {
     additionalData["version"] = _packageInfo?.version ?? "unknown";
     additionalData["internal_build"] = _isAppcenterBuild;
 
-    final hashedData = hashingData.map((key, value) =>
-        MapEntry(key, sha224.convert(utf8.encode(value)).toString()));
-    additionalData.addAll(hashedData);
+    if (message != null) {
+      additionalData["message"] = message;
+    }
+
+    if (data.isNotEmpty) {
+      additionalData["data"] = data;
+    }
+
+    if (hashingData.isNotEmpty) {
+      final hashedData = hashingData.map((key, value) =>
+          MapEntry(key, sha224.convert(utf8.encode(value)).toString()));
+      additionalData["hashed_data"] = hashedData;
+    }
 
     log.info("store event: $name, data: $additionalData");
 
