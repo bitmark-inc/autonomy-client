@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:autonomy_flutter/common/app_config.dart';
 import 'package:autonomy_flutter/service/account_service.dart';
 import 'package:autonomy_flutter/service/configuration_service.dart';
 import 'package:autonomy_flutter/util/constants.dart';
@@ -30,7 +31,7 @@ class AWSService {
   Future<void> initServices() async {
     // get an identity id from pool
     final openIdTokenResponse = await _cognitoService.getId(
-        identityPoolId: 'us-east-1:f247d9ac-788b-4d80-9e86-49a41643de5b');
+        identityPoolId: Environment.awsIdentityPoolId);
 
     if (openIdTokenResponse.identityId != null) {
       // get a credential from the identity with anonymous session
