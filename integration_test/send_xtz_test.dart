@@ -62,7 +62,7 @@ void main() async {
       //Expect to comeback to wallet detail after sending successfully
       expect(find.text("SEND"), findsOneWidget);
       expect(find.text("RECEIVE"), findsOneWidget);
-    });
+    }, timeout: Timeout.none);
   });
 }
 
