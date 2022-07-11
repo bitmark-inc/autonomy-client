@@ -171,9 +171,13 @@ class SendCryptoBloc extends Bloc<SendCryptoEvent, SendCryptoState> {
         case CryptoType.XTZ:
           final wallet = state.wallet;
           final tezosWallet = await wallet?.getTezosWallet();
+          final connection = state.connection?.ledgerConnection;
           try {
             final tezosFee = await _tezosService.estimateFee(
-                tezosWallet, event.address, event.amount.toInt());
+                tezosWallet,
+                event.address,
+                event.amount.toInt(),
+                connection?.tezosPublicKeys.first);
             fee = BigInt.from(tezosFee);
           } on TezartNodeError catch (err) {
             UIHelper.showInfoDialog(
