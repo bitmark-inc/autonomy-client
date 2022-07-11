@@ -84,14 +84,18 @@ class BeaconConnectConnection {
 class LedgerConnection {
   String ledgerName;
   String ledgerUUID;
-  List<String> etheremAddress;
+  List<String> ethereumAddress;
   List<String> tezosAddress;
+  List<String> ethereumPublicKeys;
+  List<String> tezosPublicKeys;
 
   LedgerConnection({
     required this.ledgerName,
     required this.ledgerUUID,
-    required this.etheremAddress,
+    required this.ethereumAddress,
     required this.tezosAddress,
+    required this.ethereumPublicKeys,
+    required this.tezosPublicKeys,
   });
 
   factory LedgerConnection.fromJson(Map<String, dynamic> json) =>

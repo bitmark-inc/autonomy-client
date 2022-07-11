@@ -68,10 +68,16 @@ LedgerConnection _$LedgerConnectionFromJson(Map<String, dynamic> json) =>
     LedgerConnection(
       ledgerName: json['ledgerName'] as String,
       ledgerUUID: json['ledgerUUID'] as String,
-      etheremAddress: (json['etheremAddress'] as List<dynamic>)
+      ethereumAddress: (json['ethereumAddress'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
       tezosAddress: (json['tezosAddress'] as List<dynamic>)
+          .map((e) => e as String)
+          .toList(),
+      ethereumPublicKeys: (json['ethereumPublicKeys'] as List<dynamic>)
+          .map((e) => e as String)
+          .toList(),
+      tezosPublicKeys: (json['tezosPublicKeys'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
     );
@@ -80,6 +86,8 @@ Map<String, dynamic> _$LedgerConnectionToJson(LedgerConnection instance) =>
     <String, dynamic>{
       'ledgerName': instance.ledgerName,
       'ledgerUUID': instance.ledgerUUID,
-      'etheremAddress': instance.etheremAddress,
+      'ethereumAddress': instance.ethereumAddress,
       'tezosAddress': instance.tezosAddress,
+      'ethereumPublicKeys': instance.ethereumPublicKeys,
+      'tezosPublicKeys': instance.tezosPublicKeys,
     };

@@ -7,6 +7,7 @@
 
 import 'dart:math';
 
+import 'package:autonomy_flutter/database/entity/connection.dart';
 import 'package:autonomy_flutter/model/currency_exchange.dart';
 import 'package:autonomy_flutter/screen/scan_qr/scan_qr_page.dart';
 import 'package:autonomy_flutter/screen/settings/crypto/send/send_crypto_bloc.dart';
@@ -15,10 +16,12 @@ import 'package:autonomy_flutter/screen/settings/crypto/send_review_page.dart';
 import 'package:autonomy_flutter/util/constants.dart';
 import 'package:autonomy_flutter/util/eth_amount_formatter.dart';
 import 'package:autonomy_flutter/util/style.dart';
+import 'package:autonomy_flutter/util/wallet_storage_ext.dart';
 import 'package:autonomy_flutter/util/xtz_utils.dart';
 import 'package:autonomy_flutter/view/au_filled_button.dart';
 import 'package:autonomy_flutter/view/au_text_field.dart';
 import 'package:autonomy_flutter/view/back_appbar.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -43,11 +46,47 @@ class _SendCryptoPageState extends State<SendCryptoPage> {
   void initState() {
     super.initState();
 
+    _loadData();
+  }
+
+  Future _loadData() async {
     if (widget.data.address != null) {
       _addressController.text = widget.data.address!;
     }
 
-    context.read<SendCryptoBloc>().add(GetBalanceEvent(widget.data.wallet));
+    late String? address;
+    if (widget.data.wallet != null) {
+      switch (widget.data.type) {
+        case CryptoType.ETH:
+          final ethUnFormatted = await widget.data.wallet!.getETHAddress();
+          address = ethUnFormatted.getETHEip55Address();
+          break;
+        case CryptoType.XTZ:
+          final wallet = await widget.data.wallet!.getTezosWallet();
+          address = wallet.address;
+          break;
+        default:
+          address = null;
+      }
+    } else {
+      final data = widget.data.connection!.ledgerConnection;
+      if (data == null) {
+        address = widget.data.connection!.accountNumber;
+      } else {
+        switch (widget.data.type) {
+          case CryptoType.ETH:
+            address = data.ethereumAddress.firstOrNull;
+            break;
+          case CryptoType.XTZ:
+            address = data.tezosAddress.firstOrNull;
+            break;
+          default:
+            address = null;
+        }
+      }
+    }
+    if (address != null)
+      context.read<SendCryptoBloc>().add(GetBalanceEvent(address));
   }
 
   @override
@@ -195,6 +234,7 @@ class _SendCryptoPageState extends State<SendCryptoPage> {
                                 final payload = SendCryptoPayload(
                                     type,
                                     state.wallet!,
+                                    state.connection!,
                                     state.address!,
                                     state.amount!,
                                     state.fee!,
@@ -286,21 +326,30 @@ class _SendCryptoPageState extends State<SendCryptoPage> {
 }
 
 class SendData {
-  final WalletStorage wallet;
+  final WalletStorage? wallet;
+  final Connection? connection;
   final CryptoType type;
   final String? address;
 
-  SendData(this.wallet, this.type, this.address);
+  SendData(this.wallet, this.connection, this.type, this.address);
 }
 
 class SendCryptoPayload {
   final CryptoType type;
-  final WalletStorage wallet;
+  final WalletStorage? wallet;
+  final Connection? connection;
   final String address;
   final BigInt amount;
   final BigInt fee;
   final CurrencyExchangeRate exchangeRate;
 
-  SendCryptoPayload(this.type, this.wallet, this.address, this.amount, this.fee,
-      this.exchangeRate);
+  SendCryptoPayload(
+    this.type,
+    this.wallet,
+    this.connection,
+    this.address,
+    this.amount,
+    this.fee,
+    this.exchangeRate,
+  );
 }

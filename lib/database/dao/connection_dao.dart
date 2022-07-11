@@ -93,8 +93,10 @@ abstract class ConnectionDao {
       var data = LedgerConnection(
           ledgerName: ledgerName,
           ledgerUUID: ledgerUUID,
-          etheremAddress: [],
-          tezosAddress: []);
+          ethereumAddress: [],
+          tezosAddress: [],
+          ethereumPublicKeys: [],
+          tezosPublicKeys: []);
 
       final existingConnection = await findById(ledgerUUID);
       if (existingConnection != null) {
@@ -103,7 +105,7 @@ abstract class ConnectionDao {
 
       switch (oldConnection.connectionType) {
         case 'ledgerEthereum':
-          data.etheremAddress
+          data.ethereumAddress
               .add(oldConnection.accountNumber.getETHEip55Address());
           break;
         case 'ledgerTezos':
@@ -118,7 +120,7 @@ abstract class ConnectionDao {
         name: ledgerName,
         data: json.encode(data),
         connectionType: ConnectionType.ledger.rawValue,
-        accountNumber: (data.etheremAddress + data.tezosAddress).join("||"),
+        accountNumber: (data.ethereumAddress + data.tezosAddress).join("||"),
         createdAt: existingConnection?.createdAt ?? DateTime.now(),
       );
 

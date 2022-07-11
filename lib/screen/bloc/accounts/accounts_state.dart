@@ -17,13 +17,14 @@ class GetCategorizedAccountsEvent extends AccountsEvent {}
 
 class LinkLedgerWalletEvent extends AccountsEvent {
   final String address;
+  final String pubkey;
   final String blockchain;
   final String ledgerName;
   final String ledgerBLEUUID;
   final Map<String, dynamic> data;
 
-  LinkLedgerWalletEvent(this.address, this.blockchain, this.ledgerName,
-      this.ledgerBLEUUID, this.data);
+  LinkLedgerWalletEvent(this.address, this.pubkey, this.blockchain,
+      this.ledgerName, this.ledgerBLEUUID, this.data);
 }
 
 class NameLinkedAccountEvent extends AccountsEvent {

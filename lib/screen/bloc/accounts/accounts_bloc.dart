@@ -189,7 +189,7 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
           case 'ledger':
             // NOTE: Please double-check this logic when ReceivePage bring back to app
             final data = connection.ledgerConnection;
-            final etheremAddress = data?.etheremAddress.firstOrNull;
+            final etheremAddress = data?.ethereumAddress.firstOrNull;
             final tezosAddress = data?.tezosAddress.firstOrNull;
             if (etheremAddress != null) {
               categorizedAccounts.add(CategorizedAccounts(connection.name, [
@@ -239,8 +239,10 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
       var data = LedgerConnection(
           ledgerName: event.ledgerName,
           ledgerUUID: event.ledgerBLEUUID,
-          etheremAddress: [],
-          tezosAddress: []);
+          ethereumAddress: [],
+          tezosAddress: [],
+          ethereumPublicKeys: [],
+          tezosPublicKeys: []);
 
       if (connection != null) {
         data = LedgerConnection.fromJson(json.decode(connection.data));
@@ -248,10 +250,12 @@ class AccountsBloc extends Bloc<AccountsEvent, AccountsState> {
 
       switch (event.blockchain) {
         case "Ethereum":
-          data.etheremAddress.add(event.address.getETHEip55Address());
+          data.ethereumAddress.add(event.address.getETHEip55Address());
+          data.ethereumPublicKeys.add(event.pubkey);
           break;
         case "Tezos":
           data.tezosAddress.add(event.address);
+          data.tezosPublicKeys.add(event.pubkey);
           break;
         default:
           throw "Unhandled blockchain ${event.blockchain}";

@@ -85,6 +85,20 @@ class LedgerHardwareService {
     return ledger.isConnected;
   }
 
+  Future<LedgerHardwareWallet> connectWithUUID(String name, String uuid) async {
+    final connectedLeder = _connectedLedgers[uuid];
+    if (connectedLeder != null) {
+      return connectedLeder;
+    }
+
+    final results = FlutterBlue.instance.scan();
+    final result =
+        await results.firstWhere((result) => result.device.id.id == uuid);
+    final ledger = LedgerHardwareWallet(name, result.device);
+    await connect(ledger);
+    return ledger;
+  }
+
   Future<dynamic> disconnect([LedgerHardwareWallet? ledger]) async {
     if (ledger != null) {
       _connectedLedgers.remove(ledger.device.id.id);

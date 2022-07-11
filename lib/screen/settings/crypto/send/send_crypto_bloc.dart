@@ -39,14 +39,13 @@ class SendCryptoBloc extends Bloc<SendCryptoEvent, SendCryptoState> {
   ) : super(SendCryptoState()) {
     on<GetBalanceEvent>((event, emit) async {
       final newState = state.clone();
-      newState.wallet = event.wallet;
 
       final exchangeRate = await _currencyService.getExchangeRates();
       newState.exchangeRate = exchangeRate;
 
       switch (_type) {
         case CryptoType.ETH:
-          final ownerAddress = await event.wallet.getETHEip55Address();
+          final ownerAddress = event.address;
           final balance = await _ethereumService.getBalance(ownerAddress);
 
           newState.balance = balance.getInWei;
@@ -58,8 +57,7 @@ class SendCryptoBloc extends Bloc<SendCryptoEvent, SendCryptoState> {
           }
           break;
         case CryptoType.XTZ:
-          final tezosWallet = await event.wallet.getTezosWallet();
-          final address = tezosWallet.address;
+          final address = event.address;
           final balance = await _tezosService.getBalance(address);
 
           newState.balance = BigInt.from(balance);
@@ -172,8 +170,7 @@ class SendCryptoBloc extends Bloc<SendCryptoEvent, SendCryptoState> {
           break;
         case CryptoType.XTZ:
           final wallet = state.wallet;
-          if (wallet == null) return;
-          final tezosWallet = await wallet.getTezosWallet();
+          final tezosWallet = await wallet?.getTezosWallet();
           try {
             final tezosFee = await _tezosService.estimateFee(
                 tezosWallet, event.address, event.amount.toInt());

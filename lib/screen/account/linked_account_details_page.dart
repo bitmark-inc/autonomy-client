@@ -5,7 +5,10 @@
 //  that can be found in the LICENSE file.
 //
 
+import 'package:autonomy_flutter/screen/app_router.dart';
+import 'package:autonomy_flutter/screen/settings/crypto/wallet_detail/wallet_detail_page.dart';
 import 'package:autonomy_flutter/util/constants.dart';
+import 'package:autonomy_flutter/view/tappable_forward_row.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -84,7 +87,7 @@ class _LinkedAccountDetailsPageState extends State<LinkedAccountDetailsPage> {
       case 'ledger':
         final data = widget.connection.ledgerConnection;
         _source = data?.ledgerName ?? 'Unknown';
-        final ethereumAddress = data?.etheremAddress.firstOrNull;
+        final ethereumAddress = data?.ethereumAddress.firstOrNull;
         final tezosAddress = data?.tezosAddress.firstOrNull;
 
         if (ethereumAddress != null) {
@@ -217,16 +220,19 @@ class _LinkedAccountDetailsPageState extends State<LinkedAccountDetailsPage> {
           children: [
             ...contextedAddresses.map(
               (e) {
-                return Column(
-                  children: [
-                    _balanceRow(e.cryptoType,
+                return TappableForwardRow(
+                    leftWidget: _balanceRow(e.cryptoType,
                         balanceString:
                             _balances[e.address] ?? '-- ${e.cryptoType.code}'),
-                    if (e != contextedAddresses.last) ...[
-                      addDivider(),
-                    ]
-                  ],
-                );
+                    onTap: widget.connection.connectionType ==
+                            ConnectionType.ledger.rawValue
+                        ? () => Navigator.of(context).pushNamed(
+                              AppRouter.walletDetailsPage,
+                              arguments: WalletDetailsPayload(
+                                  type: e.cryptoType,
+                                  connection: widget.connection),
+                            )
+                        : null);
               },
             )
           ],

@@ -24,10 +24,15 @@ abstract class TezosService {
   Future<int> estimateOperationFee(
       TezosWallet wallet, List<Operation> operation);
 
-  Future<int> estimateFee(TezosWallet wallet, String to, int amount);
+  Future<int> estimateFee(TezosWallet? wallet, String to, int amount,
+      [String? publicKey]);
 
   Future<String?> sendOperationTransaction(
       TezosWallet wallet, List<Operation> operation);
+
+  Future<OperationsList> buildTransactions(
+      TezosWallet? wallet, String to, int amount,
+      [String? publicKey]);
 
   Future<String?> sendTransaction(TezosWallet wallet, String to, int amount);
 
@@ -72,8 +77,8 @@ class TezosServiceImpl extends TezosService {
     return _retryOnNodeError<int>((client) async {
       final keystore = _getKeystore(wallet);
 
-      var operationList = OperationsList(
-          source: keystore, rpcInterface: client.rpcInterface);
+      var operationList =
+          OperationsList(source: keystore, rpcInterface: client.rpcInterface);
 
       operations.forEach((element) {
         operationList.appendOperation(element);
@@ -100,8 +105,8 @@ class TezosServiceImpl extends TezosService {
     return _retryOnNodeError<String?>((client) async {
       final keystore = _getKeystore(wallet);
 
-      var operationList = OperationsList(
-          source: keystore, rpcInterface: client.rpcInterface);
+      var operationList =
+          OperationsList(source: keystore, rpcInterface: client.rpcInterface);
 
       operations.forEach((element) {
         operationList.appendOperation(element);
@@ -119,11 +124,14 @@ class TezosServiceImpl extends TezosService {
   }
 
   @override
-  Future<int> estimateFee(TezosWallet wallet, String to, int amount) async {
+  Future<int> estimateFee(TezosWallet? wallet, String to, int amount,
+      [String? publicKey]) async {
     log.info("TezosService.estimateFee: $to, $amount");
 
     return _retryOnNodeError<int>((client) async {
-      final keystore = _getKeystore(wallet);
+      final keystore = wallet != null
+          ? _getKeystore(wallet)
+          : Keystore.fromPublicKey(publicKey!);
       final operation = await client.transferOperation(
         source: keystore,
         destination: to,
@@ -135,6 +143,29 @@ class TezosServiceImpl extends TezosService {
       return operation.operations
           .map((e) => e.fee)
           .reduce((value, element) => value + element);
+    });
+  }
+
+  @override
+  Future<OperationsList> buildTransactions(
+      TezosWallet? wallet, String to, int amount,
+      [String? publicKey]) async {
+    return _retryOnNodeError<OperationsList>((client) async {
+      final keystore = wallet != null
+          ? _getKeystore(wallet)
+          : Keystore.fromPublicKey(publicKey!);
+      final operationList = await client.transferOperation(
+        source: keystore,
+        destination: to,
+        amount: amount,
+        reveal: true,
+      );
+
+      await operationList.estimate();
+      await operationList.simulate();
+      await operationList.forge();
+
+      return operationList;
     });
   }
 
@@ -185,7 +216,8 @@ class TezosServiceImpl extends TezosService {
       }
 
       final _random = new Random();
-      final clientToRetry = backupTezartClients[_random.nextInt(backupTezartClients.length)];
+      final clientToRetry =
+          backupTezartClients[_random.nextInt(backupTezartClients.length)];
       return await func(clientToRetry);
     }
   }

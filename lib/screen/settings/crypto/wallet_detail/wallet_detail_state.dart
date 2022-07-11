@@ -12,9 +12,9 @@ abstract class WalletDetailEvent {}
 
 class WalletDetailBalanceEvent extends WalletDetailEvent {
   CryptoType type;
-  WalletStorage wallet;
+  String address;
 
-  WalletDetailBalanceEvent(this.type, this.wallet);
+  WalletDetailBalanceEvent(this.type, this.address);
 }
 
 class WalletDetailState {

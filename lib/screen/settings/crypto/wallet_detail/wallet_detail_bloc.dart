@@ -32,7 +32,7 @@ class WalletDetailBloc extends Bloc<WalletDetailEvent, WalletDetailState> {
 
       switch (event.type) {
         case CryptoType.ETH:
-          final address = await event.wallet.getETHEip55Address();
+          final address = event.address;
           emit(state.copyWith(address: address));
           final balance = await _ethereumService.getBalance(address);
 
@@ -46,8 +46,8 @@ class WalletDetailBloc extends Bloc<WalletDetailEvent, WalletDetailState> {
               " USD";
           break;
         case CryptoType.XTZ:
-          final tezosWallet = await event.wallet.getTezosWallet();
-          final address = tezosWallet.address;
+          // final tezosWallet = await event.wallet.getTezosWallet();
+          final address = event.address;
           emit(state.copyWith(address: address));
 
           final balance = await _tezosService.getBalance(address);

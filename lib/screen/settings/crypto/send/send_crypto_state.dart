@@ -5,15 +5,17 @@
 //  that can be found in the LICENSE file.
 //
 
+import 'package:autonomy_flutter/database/entity/connection.dart';
 import 'package:autonomy_flutter/model/currency_exchange.dart';
+import 'package:autonomy_flutter/util/constants.dart';
 import 'package:libauk_dart/libauk_dart.dart';
 
 abstract class SendCryptoEvent {}
 
 class GetBalanceEvent extends SendCryptoEvent {
-  final WalletStorage wallet;
+  String address;
 
-  GetBalanceEvent(this.wallet);
+  GetBalanceEvent(this.address);
 }
 
 class AmountChangedEvent extends SendCryptoEvent {
@@ -43,6 +45,7 @@ class EstimateFeeEvent extends SendCryptoEvent {
 
 class SendCryptoState {
   WalletStorage? wallet;
+  Connection? connection;
 
   bool isScanQR;
   bool isCrypto;
@@ -62,6 +65,7 @@ class SendCryptoState {
 
   SendCryptoState(
       {this.wallet,
+      this.connection,
       this.isScanQR = true,
       this.isCrypto = true,
       this.isAddressError = false,
@@ -76,6 +80,7 @@ class SendCryptoState {
 
   SendCryptoState clone() => SendCryptoState(
         wallet: wallet,
+        connection: connection,
         isScanQR: isScanQR,
         isCrypto: isCrypto,
         isAddressError: isAddressError,

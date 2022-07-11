@@ -235,11 +235,12 @@ class _LinkLedgerPageState extends State<LinkLedgerPage> {
             "Cannot get an address from your ETH app.\nMake sure you have created an account in the Ledger wallet.");
       } else {
         final address = data["address"] as String;
+        final pubkey = data["publicKey"] as String;
         log.info("Catched an address: $address");
         UIHelper.hideInfoDialog(context);
 
-        context.read<AccountsBloc>().add(LinkLedgerWalletEvent(
-            address, blockchain, ledger.name, ledger.device.id.id, data));
+        context.read<AccountsBloc>().add(LinkLedgerWalletEvent(address, pubkey,
+            blockchain, ledger.name, ledger.device.id.id, data));
 
         Vibrate.feedback(FeedbackType.success);
       }

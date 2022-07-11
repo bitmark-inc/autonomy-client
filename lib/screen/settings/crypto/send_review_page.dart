@@ -7,20 +7,26 @@
 
 import 'package:autonomy_flutter/common/injector.dart';
 import 'package:autonomy_flutter/common/network_config_injector.dart';
+import 'package:autonomy_flutter/database/entity/connection.dart';
 import 'package:autonomy_flutter/screen/settings/crypto/send/send_crypto_page.dart';
 import 'package:autonomy_flutter/service/configuration_service.dart';
 import 'package:autonomy_flutter/service/ethereum_service.dart';
+import 'package:autonomy_flutter/service/ledger_hardware/ledger_hardware_service.dart';
+import 'package:autonomy_flutter/service/ledger_hardware/ledger_hardware_transport.dart';
 import 'package:autonomy_flutter/service/tezos_service.dart';
 import 'package:autonomy_flutter/util/biometrics_util.dart';
 import 'package:autonomy_flutter/util/constants.dart';
 import 'package:autonomy_flutter/util/eth_amount_formatter.dart';
+import 'package:autonomy_flutter/util/log.dart';
 import 'package:autonomy_flutter/util/style.dart';
+import 'package:autonomy_flutter/util/ui_helper.dart';
 import 'package:autonomy_flutter/util/xtz_utils.dart';
 import 'package:autonomy_flutter/view/au_filled_button.dart';
 import 'package:autonomy_flutter/view/back_appbar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:tezart/tezart.dart';
 import 'package:web3dart/credentials.dart';
 
 class SendReviewPage extends StatefulWidget {
@@ -134,8 +140,6 @@ class _SendReviewPageState extends State<SendReviewPage> {
                                   _isSending = true;
                                 });
 
-                                final networkInjector =
-                                    injector<NetworkConfigInjector>();
                                 final configurationService =
                                     injector<ConfigurationService>();
 
@@ -155,38 +159,7 @@ class _SendReviewPageState extends State<SendReviewPage> {
                                   }
                                 }
 
-                                switch (widget.payload.type) {
-                                  case CryptoType.ETH:
-                                    final address = EthereumAddress.fromHex(
-                                        widget.payload.address);
-                                    final txHash = await networkInjector
-                                        .I<EthereumService>()
-                                        .sendTransaction(
-                                            widget.payload.wallet,
-                                            address,
-                                            widget.payload.amount,
-                                            null,
-                                            null);
-
-                                    Navigator.of(context).pop(txHash);
-                                    break;
-                                  case CryptoType.XTZ:
-                                    final tezosWallet = await widget
-                                        .payload.wallet
-                                        .getTezosWallet();
-                                    final sig = await networkInjector
-                                        .I<TezosService>()
-                                        .sendTransaction(
-                                            tezosWallet,
-                                            widget.payload.address,
-                                            widget.payload.amount.toInt());
-
-                                    Navigator.of(context).pop(sig);
-                                    break;
-                                  case CryptoType.BITMARK:
-                                    // TODO: Handle this case.
-                                    break;
-                                }
+                                await _signAndSend();
 
                                 setState(() {
                                   _isSending = false;
@@ -203,5 +176,79 @@ class _SendReviewPageState extends State<SendReviewPage> {
         ],
       ),
     );
+  }
+
+  Future _signAndSend() async {
+    final networkInjector = injector<NetworkConfigInjector>();
+
+    switch (widget.payload.type) {
+      case CryptoType.ETH:
+        late String txHash;
+        if (widget.payload.wallet != null) {
+          final address = EthereumAddress.fromHex(widget.payload.address);
+          txHash = await networkInjector.I<EthereumService>().sendTransaction(
+              widget.payload.wallet!,
+              address,
+              widget.payload.amount,
+              null,
+              null);
+        }
+
+        Navigator.of(context).pop(txHash);
+        break;
+      case CryptoType.XTZ:
+        late String? sig;
+        if (widget.payload.wallet != null) {
+          final tezosWallet = await widget.payload.wallet!.getTezosWallet();
+          sig = await networkInjector.I<TezosService>().sendTransaction(
+              tezosWallet,
+              widget.payload.address,
+              widget.payload.amount.toInt());
+        } else if (widget.payload.connection != null &&
+            widget.payload.connection!.connectionType ==
+                ConnectionType.ledger.rawValue) {
+          final ledgerConnection = widget.payload.connection?.ledgerConnection;
+          if (ledgerConnection != null) {
+            sig = await _signTezosWithLedger(networkInjector);
+          }
+        }
+
+        Navigator.of(context).pop(sig);
+        break;
+      case CryptoType.BITMARK:
+        // TODO: Handle this case.
+        break;
+    }
+  }
+
+  Future<String?> _signTezosWithLedger(
+      NetworkConfigInjector networkInjector) async {
+    final ledgerConnection = widget.payload.connection?.ledgerConnection;
+    if (ledgerConnection == null) {
+      return null;
+    }
+
+    UIHelper.showInfoDialog(
+        context, ledgerConnection.ledgerName, "Connecting...",
+        isDismissible: true);
+    // Perform ledger connection
+    final device = await injector<LedgerHardwareService>().connectWithUUID(
+        ledgerConnection.ledgerName, ledgerConnection.ledgerUUID);
+
+    final operationList = await networkInjector
+        .I<TezosService>()
+        .buildTransactions(
+            null, widget.payload.address, widget.payload.amount.toInt());
+    final txHex = operationList.result.forgedOperation;
+    if (txHex == null) {
+      log.warning("Nothing to sign");
+      return null;
+    }
+
+    final sig = await LedgerCommand.signTezosOperation(
+        device, "44'/1729'/0'/0'", txHex);
+    operationList.result.signature =
+        Signature.fromHex(data: sig, keystore: Keystore.random());
+    return sig;
   }
 }

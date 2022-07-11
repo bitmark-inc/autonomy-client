@@ -193,7 +193,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
             case 'ledger':
               final data = linkAccount.ledgerConnection;
-              final ethAddress = data?.etheremAddress.firstOrNull;
+              final ethAddress = data?.ethereumAddress.firstOrNull;
               final tezosAddress = data?.tezosAddress.firstOrNull;
 
               if (ethAddress != null) {

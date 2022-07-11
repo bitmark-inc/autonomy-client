@@ -12,9 +12,10 @@ import 'package:autonomy_flutter/util/endian_int_ext.dart';
 import 'package:autonomy_flutter/util/log.dart';
 import 'package:autonomy_flutter/util/xtz_utils.dart';
 import 'package:convert/convert.dart';
-import 'package:tezart/tezart.dart';
-import 'package:async/async.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:tezart/src/crypto/crypto.dart' as crypto;
+import 'package:tezart/src/crypto/crypto.dart' show Prefixes;
+import 'package:tezart/tezart.dart';
 
 // Ref: https://blog.ledger.com/btchip-doc/bitcoin-technical.html
 
@@ -41,7 +42,6 @@ class LedgerHardwareWallet {
   BluetoothCharacteristic? writeCharacteristic;
   BluetoothCharacteristic? writeCMDCharacteristic;
   BluetoothCharacteristic? notifyCharacteristic;
-  int _currentCounter = 0;
 
   LedgerHardwareWallet(this.name, this.device);
 
@@ -443,5 +443,52 @@ class LedgerCommand {
       "address": address,
       "path": path,
     };
+  }
+
+  static Future<String> signTezosOperation(
+    LedgerHardwareWallet ledger,
+    String path,
+    String rawTxHex,
+  ) async {
+    final rawTx = hex.decode(rawTxHex);
+    final pathData = pathToData(path);
+    var toSend = List<List<int>>.empty(growable: true);
+    int offset = 0;
+    toSend.add(pathData);
+    while (offset != rawTx.length) {
+      const maxChunkSize = 230;
+      late int chunkSize;
+
+      if (offset + maxChunkSize >= rawTx.length) {
+        chunkSize = rawTx.length - offset;
+      } else {
+        chunkSize = maxChunkSize;
+      }
+
+      final buffer = rawTx.sublist(offset, offset + chunkSize);
+      toSend.add(buffer);
+      offset += chunkSize;
+    }
+
+    late List<int> response;
+
+    for (int i = 0; i < toSend.length; i++) {
+      final data = toSend[i];
+      var code = 0x01;
+
+      if (i == 0) {
+        code = 0x00;
+      } else if (i == toSend.length - 1) {
+        code = 0x81;
+      }
+
+      final adpu =
+          ADPU(cla: CLA_TEZOS, ins: 0x04, p1: code, p2: 0x00, payload: data);
+
+      response = await ledger.exchangeADPU(adpu);
+    }
+
+    final signature = response.sublist(0, response.length - 2);
+    return hex.encode(signature);
   }
 }
