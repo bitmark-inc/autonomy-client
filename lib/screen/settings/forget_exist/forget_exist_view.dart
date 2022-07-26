@@ -16,6 +16,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roundcheckbox/roundcheckbox.dart';
 
 class ForgetExistView extends StatelessWidget {
+  final String? event;
+
+  const ForgetExistView({Key? key, this.event}) : super(key: key);
+
+  String get descriptionEvent {
+    return event == 'ConfirmEraseDeviceInfoEvent'
+        ? "Your accounts and data from your device and your cloud backup will be deleted. Can restore with social recovery if you're done setup"
+        : 'Your accounts and data from your device and your cloud backup will be deleted. Autonomy will not be able to help you recover access.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = AuThemeManager.get(AppTheme.sheetTheme);
@@ -48,8 +58,7 @@ class ForgetExistView extends StatelessWidget {
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
                         TextSpan(
-                          text:
-                              " Your accounts and data from your device and your cloud backup will be deleted. Autonomy will not be able to help you recover access.",
+                          text: " $descriptionEvent",
                         ),
                       ],
                     ),
@@ -129,9 +138,19 @@ class ForgetExistView extends StatelessWidget {
             AuFilledButton(
               text: state.isProcessing == true ? "FORGETTING…" : "CONFIRM",
               enabled: state.isProcessing == null && state.isChecked,
-              onPress: () {
-                context.read<ForgetExistBloc>().add(ConfirmForgetExistEvent());
-              },
+              onPress: state.isProcessing == null && state.isChecked
+                  ? () {
+                      if (event == 'ConfirmEraseDeviceInfoEvent') {
+                        context
+                            .read<ForgetExistBloc>()
+                            .add(ConfirmEraseDeviceInfoEvent());
+                      } else {
+                        context
+                            .read<ForgetExistBloc>()
+                            .add(ConfirmForgetExistEvent());
+                      }
+                    }
+                  : null,
               color: theme.primaryColor,
               isProcessing: state.isProcessing == true,
               textStyle: TextStyle(

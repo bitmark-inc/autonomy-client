@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:autonomy_flutter/common/environment.dart';
 import 'package:autonomy_flutter/model/jwt.dart';
 import 'package:autonomy_flutter/model/network.dart';
+import 'package:autonomy_flutter/service/social_recovery/shard_deck.dart';
 import 'package:autonomy_flutter/util/log.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -65,6 +66,10 @@ abstract class ConfigurationService {
   Future<void> setImmediateInfoViewEnabled(bool value);
   bool isImmediateInfoViewEnabled();
   Future<String> getAccountHMACSecret();
+  ShardDeck? getCachedDeckFromShardService();
+  Future<void> setCachedDeckFromShardService(ShardDeck? deck);
+  bool isLostPlatformRestore();
+  Future<void> setIsLostPlatformRestore(bool value);
 
   // ----- App Setting -----
   bool isDemoArtworksMode();
@@ -101,6 +106,9 @@ class ConfigurationServiceImpl implements ConfigurationService {
   static const String KEY_FINISHED_SURVEYS = "finished_surveys";
   static const String KEY_IMMEDIATE_INFOVIEW = 'immediate_infoview';
   static const String ACCOUNT_HMAC_SECRET = "account_hmac_secret";
+  static const String CACHED_DECK_FROM_SHARD_SERVICE =
+      'CACHED_DECK_FROM_SHARD_SERVICE';
+  static const String IS_LOST_PLATFORM_RESTORE = "IS_LOST_PLATFORM_RESTORE";
 
   // keys for WalletConnect dapp side
   static const String KEY_WC_DAPP_SESSION = "wc_dapp_store";
@@ -447,6 +455,32 @@ class ConfigurationServiceImpl implements ConfigurationService {
   @override
   List<String> getFinishedSurveys() {
     return _preferences.getStringList(KEY_FINISHED_SURVEYS) ?? [];
+  }
+
+  @override
+  ShardDeck? getCachedDeckFromShardService() {
+    final value = _preferences.getString(CACHED_DECK_FROM_SHARD_SERVICE);
+
+    if (value == null) return null;
+    return ShardDeck.fromJson(jsonDecode(value));
+  }
+
+  Future setCachedDeckFromShardService(ShardDeck? deck) async {
+    if (deck == null) {
+      await _preferences.remove(CACHED_DECK_FROM_SHARD_SERVICE);
+    } else {
+      await _preferences.setString(
+          CACHED_DECK_FROM_SHARD_SERVICE, jsonEncode(deck));
+    }
+  }
+
+  @override
+  bool isLostPlatformRestore() {
+    return _preferences.getBool(IS_LOST_PLATFORM_RESTORE) ?? false;
+  }
+
+  Future<void> setIsLostPlatformRestore(bool value) async {
+    await _preferences.setBool(IS_LOST_PLATFORM_RESTORE, value);
   }
 
   @override

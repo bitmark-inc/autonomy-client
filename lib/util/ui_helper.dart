@@ -27,7 +27,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:intl/intl.dart';
 import 'package:jiffy/jiffy.dart';
-import 'package:share/share.dart';
+import 'package:share_plus/share_plus.dart';
 
 enum ActionState { notRequested, loading, error, done }
 
@@ -58,6 +58,22 @@ void showSurveysNotification() {
       Key(Survey.onboarding),
       notificationOpenedHandler: () =>
           injector<NavigationService>().navigateTo(SurveyPage.tag));
+}
+
+Future askForNotification() async {
+  if (injector<ConfigurationService>().isNotificationEnabled() != null) {
+    // Skip asking for notifications
+    return;
+  }
+
+  await Future<dynamic>.delayed(Duration(seconds: 1), () async {
+    final context = injector<NavigationService>().navigatorKey.currentContext;
+    if (context == null) return null;
+
+    return await Navigator.of(context).pushNamed(
+        AppRouter.notificationOnboardingPage,
+        arguments: {"isOnboarding": false});
+  });
 }
 
 Future newAccountPageOrSkipInCondition(BuildContext context) async {

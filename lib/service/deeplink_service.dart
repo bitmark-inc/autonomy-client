@@ -7,12 +7,17 @@
 
 import 'dart:async';
 
+import 'package:autonomy_flutter/common/injector.dart';
+import 'package:autonomy_flutter/screen/app_router.dart';
+import 'package:autonomy_flutter/service/account_service.dart';
 import 'package:autonomy_flutter/service/configuration_service.dart';
 import 'package:autonomy_flutter/service/feralfile_service.dart';
 import 'package:autonomy_flutter/service/navigation_service.dart';
+import 'package:autonomy_flutter/service/social_recovery/social_recovery_service.dart';
 import 'package:autonomy_flutter/service/tezos_beacon_service.dart';
 import 'package:autonomy_flutter/service/wallet_connect_service.dart';
 import 'package:autonomy_flutter/util/constants.dart';
+import 'package:autonomy_flutter/util/custom_exception.dart';
 import 'package:autonomy_flutter/util/log.dart';
 import 'package:autonomy_flutter/util/string_ext.dart';
 import 'package:autonomy_flutter/util/ui_helper.dart';
@@ -63,8 +68,12 @@ class DeeplinkServiceImpl extends DeeplinkService {
       if (context == null) return;
       timer.cancel();
 
-      _handleDappConnectDeeplink(link) ||
-          await _handleFeralFileDeeplink(context, link);
+      final validLink = _handleDappConnectDeeplink(link) ||
+          await _handleFeralFileDeeplink(context, link) ||
+          await _handleSendDeckToShardService(context, link) ||
+          await _handleGetDeckToShardService(context, link);
+
+      if (!validLink) throw InvalidDeeplink();
     });
   }
 
@@ -154,5 +163,77 @@ class DeeplinkServiceImpl extends DeeplinkService {
     }
 
     return false;
+  }
+
+  Future<bool> _handleSendDeckToShardService(
+      BuildContext context, String link) async {
+    log.info("[DeeplinkService] _handleSendDeckToShardService");
+    final uri = Uri.parse(link);
+
+    if (uri.path == "/apps/social-recovery/set") {
+      final code = uri.queryParameters['code'];
+      final domain = uri.queryParameters['domain'];
+
+      if (code == null || domain == null) {
+        throw InvalidDeeplink();
+      }
+
+      UIHelper.showInfoDialog(
+        context,
+        'Processing...',
+        'Sending ShardDeck to $domain',
+        autoDismissAfter: 5,
+        isDismissible: false,
+      );
+
+      await injector<SocialRecoveryService>()
+          .sendDeckToShardService(domain, code);
+
+      injector<NavigationService>().popUntilHomeOrSettings();
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future<bool> _handleGetDeckToShardService(
+      BuildContext context, String link) async {
+    log.info("[DeeplinkService] _handleGetDeckToShardService");
+
+    final uri = Uri.parse(link);
+    if (uri.path == "/apps/social-recovery/get") {
+      final code = uri.queryParameters['code'];
+      final domain = uri.queryParameters['domain'];
+
+      if (code == null ||
+          domain == null ||
+          (await injector<AccountService>().getCurrentDefaultAccount()) !=
+              null) {
+        throw InvalidDeeplink();
+      }
+
+      UIHelper.showInfoDialog(
+        context,
+        'Processing...',
+        'Getting ShardDeck from $domain',
+        autoDismissAfter: 5,
+        isDismissible: false,
+      );
+
+      final deck = await injector<SocialRecoveryService>()
+          .requestDeckFromShardService(domain, code);
+      await _configurationService.setCachedDeckFromShardService(deck);
+
+      await injector<NavigationService>()
+          .navigatorKey
+          .currentState
+          ?.pushNamedAndRemoveUntil(AppRouter.restoreWithEmergencyContactPage,
+              (route) => route.settings.name == AppRouter.onboardingPage);
+
+      return true;
+    } else {
+      return false;
+    }
   }
 }
